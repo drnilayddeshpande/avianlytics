@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0F6E56">
+<link rel="apple-touch-icon" href="icon-512.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avianlytics - Poultry Trial App</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  :root {
+    --primary: #0F6E56;
+    --primary-hover: #0a4f3e;
+    --danger: #dc2626;
+    --danger-hover: #b91c1c;
+    --bg-main: #f4f7f6;
+    --bg-card: #ffffff;
+    --text-main: #1f2937;
+    --text-muted: #6b7280;
+    --border: #e5e7eb;
+    --radius: 8px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    margin: 0;
+    padding: 2rem;
+    line-height: 1.5;
+  }
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+  .header h1 { margin: 0; color: var(--primary); font-size: 2.5rem; letter-spacing: -0.5px; }
+  .header p { color: var(--text-muted); margin-top: 0.5rem; font-size: 1.1rem; }
+  
+  .active-exp-badge {
+    display: inline-block;
+    background: #eef2ff;
+    color: #4f46e5;
+    border: 1px solid #c7d2fe;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 10px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0.5rem;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { background: #e5e7eb; }
+  .tab-btn.active {
+    background: var(--primary);
+    color: white;
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+  
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Cards & Inputs */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.5rem;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  
+  @media (max-width: 768px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem; color: var(--text-muted); }
+  input, select {
+    width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 4px;
+    font-family: inherit; font-size: 0.9rem; box-sizing: border-box;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 110, 86, 0.1); }
+  
+  button.primary-btn {
+    background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem;
+    font-size: 1rem; font-weight: 500; border-radius: 4px; cursor: pointer; transition: 0.2s;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%;
+  }
+  button.primary-btn:hover { background: var(--primary-hover); }
+
+  button.secondary-btn {
+    background: white; color: var(--primary); border: 1px solid var(--primary); padding: 0.75rem 1.5rem;
+    font-size: 1rem; font-weight: 500; border-radius: 4px; cursor: pointer; transition: 0.2s;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%;
+  }
+  button.secondary-btn:hover { background: #f0fdf4; }
+
+  button.danger-btn {
+    background: var(--danger); color: white; border: none; padding: 0.75rem 1.5rem;
+    font-size: 1rem; font-weight: 500; border-radius: 4px; cursor: pointer; transition: 0.2s;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  }
+  button.danger-btn:hover { background: var(--danger-hover); }
+
+  /* Tables */
+  .table-wrapper { overflow-x: auto; max-height: 300px; border: 1px solid var(--border); border-radius: var(--radius); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: #f9fafb; position: sticky; top: 0; font-weight: 600; }
+  
+  /* Guide & About Styling */
+  .guide-step { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+  .guide-num { 
+    background: var(--primary); color: white; width: 30px; height: 30px; 
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;
+  }
+  .contact-link {
+    display: flex; align-items: center; gap: 8px; color: var(--text-main); text-decoration: none;
+    padding: 8px 12px; border-radius: 4px; transition: 0.2s; background: #f9fafb; border: 1px solid var(--border);
+    justify-content: center; width: 100%; max-width: 300px; margin: 0 auto;
+  }
+  .contact-link:hover { background: #f3f4f6; border-color: #d1d5db; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Avianlytics</h1>
+    <p>Poultry Trial Data Entry, Tracking, and Statistical Analysis</p>
+    <div id="headerActiveExp" class="active-exp-badge"><i class="ti ti-folder"></i> Active: Experiment 1</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('guide')"><i class="ti ti-book"></i> Guide</button>
+    <button class="tab-btn" onclick="switchTab('setup')"><i class="ti ti-settings"></i> Trial Setup</button>
+    <button class="tab-btn" onclick="switchTab('entry')"><i class="ti ti-pencil"></i> Data Entry</button>
+    <button class="tab-btn" onclick="switchTab('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('anova')"><i class="ti ti-calculator"></i> ANOVA Analysis</button>
+    <button class="tab-btn" onclick="switchTab('about')"><i class="ti ti-user"></i> About</button>
+  </div>
+
+  <div id="guide" class="tab-content active card">
+    <h2>How to Use Avianlytics</h2>
+    <p style="color:var(--text-muted); margin-bottom: 2rem;">Welcome to Avianlytics. This tool helps you record daily/weekly data, calculates performance metrics, and runs immediate statistical analyses.</p>
+    
+    <div class="guide-step">
+      <div class="guide-num">1</div>
+      <div>
+        <strong>Create & Set Up Your Experiment</strong><br>
+        Go to the <em>Trial Setup</em> tab. You can create a new workspace (e.g., "Summer Trial"), enter the specific groups, treatments, and replicates for that specific experiment, and click <strong>Save Configuration</strong>.
+      </div>
+    </div>
+    <div class="guide-step">
+      <div class="guide-num">2</div>
+      <div>
+        <strong>Daily Feed Entry (Optional but recommended)</strong><br>
+        In the <em>Data Entry</em> tab, input the exact feed offered to each group every day. The app will automatically sum this up at the end of the week.
+      </div>
+    </div>
+    <div class="guide-step">
+      <div class="guide-num">3</div>
+      <div>
+        <strong>Weekly Records</strong><br>
+        At the end of each week, enter the average Body Weight (BW) and any Residual Feed (leftovers). The app calculates <strong>Feed Intake</strong> and <strong>FCR</strong> automatically.
+      </div>
+    </div>
+    <div class="guide-step">
+      <div class="guide-num">4</div>
+      <div>
+        <strong>Analyze Results</strong><br>
+        Visit the <em>ANOVA Analysis</em> tab to run One-Way ANOVA tests comparing your treatments across different phases (Pre-starter, Starter, Finisher, Overall).
+      </div>
+    </div>
+
+    <hr style="border: 0; border-top: 1px solid var(--border); margin: 2rem 0;">
+
+    <h3 style="color: var(--text-main); margin-bottom: 1rem;">Data Storage & Privacy</h3>
+    <p style="color:var(--text-muted); margin-bottom: 1.5rem;">This app handles data locally to ensure your privacy. Here is how your data is saved:</p>
+
+    <div style="background: #eef2ff; border-left: 4px solid #4f46e5; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+      <h4 style="margin: 0 0 0.5rem; color: #3730a3;">1. Automatic Local Storage (Workspaces)</h4>
+      <p style="margin: 0; font-size: 0.9rem; color: #312e81;">Every experiment you create and every record you add is instantly saved in your web browser. You can close the tab and your separate experiments will still be here when you return.</p>
+    </div>
+
+    <div style="background: #ecfdf5; border-left: 4px solid #10b981; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+      <h4 style="margin: 0 0 0.5rem; color: #047857;">2. Permanent Backup (Excel Export)</h4>
+      <p style="margin: 0; font-size: 0.9rem; color: #065f46;">To create a permanent, sharable backup of a trial, make sure it is your active experiment, then click <strong>"Export Active Experiment to Excel"</strong> in the Dashboard tab.</p>
+    </div>
+  </div>
+
+  <div id="about" class="tab-content">
+    <div class="card" style="text-align: center; max-width: 600px; margin: 0 auto; padding: 3rem 1.5rem;">
+      <h3 style="margin-top: 0; color: var(--text-muted); text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Created By</h3>
+      <h2 style="margin: 0.5rem 0 0; color: var(--text-main); font-size: 1.8rem;">Dr. Nilay D. Deshpande</h2>
+      <p style="font-weight: 500; color: var(--primary); margin: 0.5rem 0 1.5rem; font-size: 1.1rem;">PhD Research Scholar (Poultry Science)</p>
+
+      <div style="margin-bottom: 2rem; color: var(--text-muted); line-height: 1.6; font-size: 0.95rem;">
+        <p style="margin: 0;"><strong>ICAR - Indian Veterinary Research Institute</strong></p>
+        <p style="margin: 0;">ICAR - Directorate of Poultry Research</p>
+        <p style="margin: 0;">Hyderabad (TN), India</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <a href="mailto:nilay1007@gmail.com" target="_blank" rel="noopener noreferrer" class="contact-link">
+          <i class="ti ti-mail" style="color: var(--primary); font-size: 1.2rem;"></i> nilay1007@gmail.com
+        </a>
+        <a href="https://www.linkedin.com/in/dr-nilay-d-deshpande-6b71a8223?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noopener noreferrer" class="contact-link">
+          <i class="ti ti-brand-linkedin" style="color: #0A66C2; font-size: 1.2rem;"></i> LinkedIn Profile
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div id="setup" class="tab-content">
+    
+    <div class="card" style="background: #f8fafc; border-color: #cbd5e1;">
+      <h3 style="margin-top:0; color: #334155;"><i class="ti ti-folders"></i> Experiment Manager</h3>
+      <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Switch between trials or create a new isolated workspace.</p>
+      
+      <div class="grid-2" style="align-items: end;">
+        <div>
+          <label>Select Active Experiment</label>
+          <select id="expSelectDropdown"></select>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <div style="flex-grow: 1;">
+            <label>Create New Experiment</label>
+            <input id="newExpNameInput" type="text" placeholder="e.g. Summer Trial 2026" />
+          </div>
+          <button id="createExpBtn" class="secondary-btn" style="width: auto; padding: 0.75rem;"><i class="ti ti-plus"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Configuration for: <span id="configExpNameTitle" style="color: var(--primary);"></span></h3>
+      <p style="font-size: 0.85rem; color: #854F0B; margin-bottom: 1.5rem; background: #fffbeb; padding: 10px; border-radius: 4px; border-left: 3px solid #f59e0b;">
+        Enter the parameters below and click <strong>Save Experiment Configuration</strong> to lock them in and update the Data Entry dropdowns.
+      </p>
+      
+      <div class="grid-2">
+        <div>
+          <label>Total Number of Groups (Pens)</label>
+          <input id="numGroups" type="number" min="1" />
+        </div>
+        <div>
+          <label>Trial Duration (Weeks)</label>
+          <input id="numWeeks" type="number" min="1" />
+        </div>
+        <div>
+          <label>Number of Treatments</label>
+          <input id="numTreatments" type="number" min="1" />
+        </div>
+        <div>
+          <label>Replicates per Treatment</label>
+          <input id="numReplicates" type="number" min="1" />
+        </div>
+      </div>
+
+      <button id="saveConfigBtn" class="primary-btn" style="margin-top: 1.5rem;"><i class="ti ti-device-floppy"></i> Save Experiment Configuration</button>
+      
+      <p id="mappingNote" style="font-size: 0.85rem; color: var(--primary); margin-top: 1rem; font-weight: 500;"></p>
+    </div>
+
+    <div class="card" style="border-color: #fca5a5; background: #fef2f2; text-align: center; margin-top: 2rem;">
+      <h3 style="margin-top:0; color: #danger;">Reset Application</h3>
+      <p style="font-size: 0.9rem; color: #991b1b; margin-bottom: 1.5rem;">This will permanently delete <strong>ALL experiments and data</strong> from your browser.</p>
+      <button id="resetDataBtn" class="danger-btn"><i class="ti ti-trash"></i> Wipe All Application Data</button>
+    </div>
+  </div>
+
+  <div id="entry" class="tab-content">
+    <div class="grid-2">
+      <div class="card" style="background: #fafafa;">
+        <h3 style="margin-top:0">Add Daily Feed Offered</h3>
+        <div class="grid-2" style="margin-bottom: 1rem;">
+          <div><label>Group</label><select id="groupD"></select></div>
+          <div><label>Day</label><input id="dayD" type="number" min="1" /></div>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label>Feed Offered (g)</label>
+          <input id="dfo" type="number" />
+        </div>
+        <button id="addDailyBtn" class="primary-btn"><i class="ti ti-plus"></i> Save Daily Record</button>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">Add Weekly Record</h3>
+        <div class="grid-2" style="margin-bottom: 1rem;">
+          <div><label>Group</label><select id="group"></select></div>
+          <div><label>Week</label><select id="week"></select></div>
+        </div>
+        <div class="grid-2" style="margin-bottom: 1rem;">
+          <div><label>Body Weight (g)</label><input id="bw" type="number" /></div>
+          <div><label>Residual Feed (g)</label><input id="rfi" type="number" /></div>
+        </div>
+        
+        <div style="background:#eef2ff; padding:10px; border-radius:4px; font-size:0.85rem; margin-bottom:1rem;">
+          Offered: <b id="feedOfferedSum">0</b>g - Residual: <b id="residualEcho">0</b>g = <strong>FI: <span id="computedFI">0</span>g</strong>
+        </div>
+
+        <button id="addWeeklyBtn" class="primary-btn"><i class="ti ti-check"></i> Save Weekly Record</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dashboard" class="tab-content">
+    <div class="card" style="height: 350px; position: relative;">
+      <canvas id="bwChart"></canvas>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Treatment Summary</h3>
+      <div class="table-wrapper">
+        <table id="summaryTable">
+          <thead>
+            <tr>
+              <th>Treatment</th><th>Week</th><th>Avg BW (g)</th><th>Avg FI (g)</th><th>Avg Gain (g)</th><th>FCR</th>
+            </tr>
+          </thead>
+          <tbody id="tbodySummary"></tbody>
+        </table>
+      </div>
+      <br>
+      <button id="exportBtn" class="primary-btn"><i class="ti ti-download"></i> Export Active Experiment to Excel</button>
+    </div>
+  </div>
+
+  <div id="anova" class="tab-content">
+    <div class="card">
+      <h3 style="margin-top:0">One-Way ANOVA</h3>
+      <p style="font-size:0.9rem; color:var(--text-muted)">Analysis restricted to data from the currently active experiment.</p>
+      
+      <div class="grid-3" style="margin-bottom: 1.5rem;">
+        <div>
+          <label>Parameter</label>
+          <select id="anovaParam">
+            <option value="bw">Body Weight (BW)</option>
+            <option value="fi">Feed Intake (FI)</option>
+            <option value="fcr">Feed Conversion Ratio (FCR)</option>
+          </select>
+        </div>
+        <div>
+          <label>Time Period / Phase</label>
+          <select id="anovaPeriod">
+            <option value="w1">Week 1</option>
+            <option value="w2">Week 2</option>
+            <option value="w3">Week 3</option>
+            <option value="w4">Week 4</option>
+            <option value="w5">Week 5</option>
+            <option value="w6">Week 6</option>
+            <option value="pre">Pre-starter (Days 1-14 / W1-W2)</option>
+            <option value="star">Starter (Days 15-28 / W3-W4)</option>
+            <option value="fin">Finisher (Days 29-42 / W5-W6)</option>
+            <option value="overall">Overall (Days 1-42 / W1-W6)</option>
+          </select>
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button id="runAnovaBtn" class="primary-btn"><i class="ti ti-calculator"></i> Run Analysis</button>
+        </div>
+      </div>
+
+      <div id="anovaResult" style="display:none;">
+        <h4 style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">ANOVA Output</h4>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>Source of Variation</th><th>SS</th><th>df</th><th>MS</th><th>F-Value</th><th>P-Value</th></tr>
+            </thead>
+            <tbody id="anovaTableBody"></tbody>
+          </table>
+        </div>
+        <p id="anovaInterpretation" style="margin-top:1rem; font-weight:500;"></p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js"></script>
+
+<script>
+// --- CORE DATA ARCHITECTURE ---
+const STORAGE_KEY = 'avianlytics_workspace_v2';
+
+let currentExpName = "Experiment 1";
+let experiments = {};
+
+// Working variables (Proxy for the active experiment)
+let NUM_GROUPS = 100, NUM_WEEKS = 6, NUM_TREATMENTS = 4, REPS_PER_TREATMENT = 25;
+let weeklyRecords = [];
+let dailyRecords = [];
+
+function saveActiveToMemory() {
+  experiments[currentExpName] = {
+    NUM_GROUPS, NUM_WEEKS, NUM_TREATMENTS, REPS_PER_TREATMENT,
+    weeklyRecords: [...weeklyRecords],
+    dailyRecords: [...dailyRecords]
+  };
+}
+
+function loadActiveFromMemory(name) {
+  currentExpName = name;
+  if (!experiments[name]) {
+    // Initialize blank default
+    experiments[name] = {
+      NUM_GROUPS: 100, NUM_WEEKS: 6, NUM_TREATMENTS: 4, REPS_PER_TREATMENT: 25,
+      weeklyRecords: [], dailyRecords: []
+    };
+  }
+  const data = experiments[name];
+  NUM_GROUPS = data.NUM_GROUPS;
+  NUM_WEEKS = data.NUM_WEEKS;
+  NUM_TREATMENTS = data.NUM_TREATMENTS;
+  REPS_PER_TREATMENT = data.REPS_PER_TREATMENT;
+  weeklyRecords = data.weeklyRecords || [];
+  dailyRecords = data.dailyRecords || [];
+}
+
+function saveState() {
+  saveActiveToMemory();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ currentExpName, experiments }));
+}
+
+function loadState() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      const state = JSON.parse(saved);
+      experiments = state.experiments || {};
+      const active = state.currentExpName || "Experiment 1";
+      loadActiveFromMemory(active);
+    } catch(e) { console.error("Error loading state", e); }
+  } else {
+    loadActiveFromMemory("Experiment 1");
+  }
+  updateExpUI();
+}
+
+// UI Updaters for Experiment Switch
+function updateExpUI() {
+  // Update Header
+  document.getElementById('headerActiveExp').innerHTML = `<i class="ti ti-folder"></i> Active: ${currentExpName}`;
+  document.getElementById('configExpNameTitle').textContent = currentExpName;
+
+  // Update Dropdown List and keep selection
+  const sel = document.getElementById('expSelectDropdown');
+  sel.innerHTML = '';
+  Object.keys(experiments).forEach(exp => {
+    let opt = document.createElement('option');
+    opt.value = exp; opt.textContent = exp;
+    if(exp === currentExpName) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  // Update Setup Inputs
+  document.getElementById('numGroups').value = NUM_GROUPS;
+  document.getElementById('numWeeks').value = NUM_WEEKS;
+  document.getElementById('numTreatments').value = NUM_TREATMENTS;
+  document.getElementById('numReplicates').value = REPS_PER_TREATMENT;
+
+  populateWeekSelect();
+  updateMappingNote();
+
+  if(document.getElementById('dashboard').classList.contains('active')) refresh();
+}
+
+// --- Experiment Listeners ---
+document.getElementById('expSelectDropdown').addEventListener('change', (e) => {
+  saveActiveToMemory(); // Save current before switching
+  loadActiveFromMemory(e.target.value);
+  saveState();
+  updateExpUI();
+  if(document.getElementById('dashboard').classList.contains('active')) refresh();
+});
+
+document.getElementById('createExpBtn').addEventListener('click', () => {
+  const newName = document.getElementById('newExpNameInput').value.trim();
+  if(!newName) return alert("Please enter a name for the experiment.");
+  if(experiments[newName]) return alert("An experiment with this name already exists.");
+  
+  saveActiveToMemory(); // save current
+  loadActiveFromMemory(newName); // initializes new
+  document.getElementById('newExpNameInput').value = '';
+  saveState();
+  updateExpUI();
+  alert(`Created and switched to: ${newName}`);
+});
+
+// Explicit Configuration Save Button
+document.getElementById('saveConfigBtn').addEventListener('click', () => {
+  NUM_GROUPS = Number(document.getElementById('numGroups').value) || 1;
+  NUM_WEEKS = Number(document.getElementById('numWeeks').value) || 1;
+  NUM_TREATMENTS = Number(document.getElementById('numTreatments').value) || 1;
+  REPS_PER_TREATMENT = Number(document.getElementById('numReplicates').value) || 1;
+  
+  populateWeekSelect();
+  updateMappingNote();
+  saveState();
+  
+  alert(`Configuration saved successfully for ${currentExpName}. Data entry dropdowns have been updated.`);
+});
+
+// App Reset
+document.getElementById('resetDataBtn').addEventListener('click', () => {
+  if(confirm("WARNING: This will permanently delete ALL experiments and data from your browser. Do you want to proceed?")) {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload(); 
+  }
+});
+
+// --- UI TAB LOGIC ---
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  
+  const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(btn => btn.getAttribute('onclick').includes(tabId));
+  if(activeBtn) activeBtn.classList.add('active');
+  
+  const contentDiv = document.getElementById(tabId);
+  if(contentDiv) contentDiv.classList.add('active');
+  
+  if(tabId === 'dashboard') refresh();
+}
+
+// --- UTILS ---
+function daysOfWeek(week){
+  const start = (week-1)*7 + 1;
+  return Array.from({length:7},(_,i)=>start+i);
+}
+function mappingValid(){
+  return NUM_TREATMENTS && REPS_PER_TREATMENT && (NUM_TREATMENTS * REPS_PER_TREATMENT === NUM_GROUPS);
+}
+function treatmentOf(group){ return mappingValid() ? Math.ceil(group / REPS_PER_TREATMENT) : null; }
+function replicateOf(group){ return mappingValid() ? ((group - 1) % REPS_PER_TREATMENT) + 1 : null; }
+
+// --- DOM INIT ---
+const groupSel = document.getElementById('group');
+const groupSelD = document.getElementById('groupD');
+const weekSel = document.getElementById('week');
+
+function populateGroupSelect(sel) {
+  const prev = sel.value;
+  sel.innerHTML = '';
+  for(let g=1; g<=NUM_GROUPS; g++){
+    let opt = document.createElement('option');
+    opt.value = g; opt.textContent = mappingValid() ? `Group ${g} (T${treatmentOf(g)} R${replicateOf(g)})` : `Group ${g}`;
+    sel.appendChild(opt);
+  }
+  if(prev && Number(prev) <= NUM_GROUPS) sel.value = prev;
+}
+
+function populateWeekSelect() {
+  const prev = weekSel.value;
+  weekSel.innerHTML = '';
+  for(let w=1; w<=NUM_WEEKS; w++){
+    let opt = document.createElement('option'); opt.value = w; opt.textContent = 'Week ' + w;
+    weekSel.appendChild(opt);
+  }
+  if(prev && Number(prev) <= NUM_WEEKS) weekSel.value = prev;
+}
+
+function updateMappingNote(){
+  const note = document.getElementById('mappingNote');
+  if(mappingValid()){
+    note.textContent = `Valid Setup: ${NUM_TREATMENTS} Treatments × ${REPS_PER_TREATMENT} Replicates = ${NUM_GROUPS} Groups.`;
+    note.style.color = "var(--primary)";
+  } else {
+    note.textContent = `Warning: Treatments (${NUM_TREATMENTS}) × Replicates (${REPS_PER_TREATMENT}) does not match Total Groups (${NUM_GROUPS}). ANOVA requires valid grouping.`;
+    note.style.color = "red";
+  }
+  populateGroupSelect(groupSel);
+  populateGroupSelect(groupSelD);
+}
+
+// --- DATA LOGIC ---
+function feedOfferedForGroupWeek(group, week){
+  const days = daysOfWeek(week);
+  return dailyRecords.filter(r => r.group === group && days.includes(r.day)).reduce((s,r)=> s + r.dfo, 0);
+}
+
+function updateComputed(){
+  const group = Number(groupSel.value), week = Number(weekSel.value);
+  const offered = feedOfferedForGroupWeek(group, week);
+  const rfi = Number(document.getElementById('rfi').value || 0);
+  document.getElementById('feedOfferedSum').textContent = offered;
+  document.getElementById('residualEcho').textContent = rfi;
+  document.getElementById('computedFI').textContent = Math.max(offered - rfi, 0);
+}
+weekSel.addEventListener('change', updateComputed);
+groupSel.addEventListener('change', updateComputed);
+document.getElementById('rfi').addEventListener('input', updateComputed);
+
+document.getElementById('addDailyBtn').addEventListener('click', ()=>{
+  const group = Number(groupSelD.value), day = Number(document.getElementById('dayD').value), dfo = Number(document.getElementById('dfo').value);
+  if(!day || isNaN(day) || !dfo || isNaN(dfo)) return alert("Enter valid day and feed");
+  dailyRecords = dailyRecords.filter(r => !(r.group === group && r.day === day));
+  dailyRecords.push({ group, day, dfo });
+  document.getElementById('dfo').value='';
+  saveState(); 
+  alert(`Day ${day} saved for Group ${group} in ${currentExpName}`);
+  updateComputed();
+});
+
+document.getElementById('addWeeklyBtn').addEventListener('click', ()=>{
+  const group = Number(groupSel.value), week = Number(weekSel.value), bw = Number(document.getElementById('bw').value), rfi = Number(document.getElementById('rfi').value||0);
+  if(!bw || isNaN(bw)) return alert("Enter Body Weight");
+  weeklyRecords = weeklyRecords.filter(r => !(r.group === group && r.week === week));
+  weeklyRecords.push({ group, week, bw, rfi });
+  document.getElementById('bw').value=''; document.getElementById('rfi').value='';
+  saveState(); 
+  alert(`Week ${week} saved for Group ${group} in ${currentExpName}`);
+  updateComputed();
+});
+
+// --- DASHBOARD ---
+const ctx = document.getElementById('bwChart');
+let chart = new Chart(ctx, { type: 'line', data: { labels: [], datasets: [] }, options: { responsive: true, maintainAspectRatio: false }});
+
+function refresh(){
+  if(!mappingValid()) return;
+  
+  // Update Chart
+  const byTreatWeek = {};
+  weeklyRecords.forEach(r => {
+    const t = treatmentOf(r.group);
+    if(t === null) return;
+    if(!byTreatWeek[t]) byTreatWeek[t] = {};
+    if(!byTreatWeek[t][r.week]) byTreatWeek[t][r.week] = [];
+    byTreatWeek[t][r.week].push(r.bw);
+  });
+  
+  chart.data.labels = Array.from({length:NUM_WEEKS},(_,i)=>'Week '+(i+1));
+  const colors = ['#0F6E56','#993C1D','#185FA5','#854F0B','#993556','#3C3489'];
+  
+  chart.data.datasets = Object.keys(byTreatWeek).map((t,i) => ({
+    label: 'Treatment '+t,
+    data: Array.from({length:NUM_WEEKS},(_,wi)=>{
+      const arr = byTreatWeek[t][wi+1];
+      return arr ? +(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : null;
+    }),
+    borderColor: colors[i % colors.length],
+    tension: 0.2
+  }));
+  chart.update();
+
+  // Update Summary Table
+  const tbS = document.getElementById('tbodySummary');
+  tbS.innerHTML = '';
+  const prevAvgBw = {};
+  
+  for(let w=1; w<=NUM_WEEKS; w++){
+    for(let t=1; t<=NUM_TREATMENTS; t++){
+      const recordsThisWeek = weeklyRecords.filter(r => treatmentOf(r.group) === t && r.week === w);
+      if(!recordsThisWeek.length) continue;
+      
+      let sumBw = 0, sumFi = 0;
+      recordsThisWeek.forEach(r => {
+        sumBw += r.bw;
+        sumFi += Math.max(feedOfferedForGroupWeek(r.group, r.week) - r.rfi, 0);
+      });
+      
+      const avgBw = sumBw / recordsThisWeek.length;
+      const avgFi = sumFi / recordsThisWeek.length;
+      const gain = avgBw - (prevAvgBw[t] || 0); 
+      const fcr = gain > 0 ? (avgFi / gain) : null;
+      
+      tbS.innerHTML += `<tr><td>Treatment ${t}</td><td>Week ${w}</td><td>${avgBw.toFixed(1)}</td><td>${avgFi.toFixed(1)}</td><td>${gain.toFixed(1)}</td><td>${fcr ? fcr.toFixed(2) : 'NA'}</td></tr>`;
+      prevAvgBw[t] = avgBw;
+    }
+  }
+}
+
+// --- ANOVA LOGIC ---
+document.getElementById('runAnovaBtn').addEventListener('click', () => {
+  if(!mappingValid()) return alert("Ensure Trial Setup mapping is valid.");
+  
+  const param = document.getElementById('anovaParam').value;
+  const period = document.getElementById('anovaPeriod').value;
+  
+  let startW = 1, endW = NUM_WEEKS;
+  if(period.startsWith('w')) { startW = endW = Number(period.replace('w','')); }
+  else if(period === 'pre') { startW = 1; endW = 2; }
+  else if(period === 'star') { startW = 3; endW = 4; }
+  else if(period === 'fin') { startW = 5; endW = 6; }
+  
+  const groupsData = []; 
+  for(let t=1; t<=NUM_TREATMENTS; t++) groupsData.push([]);
+
+  for(let g=1; g<=NUM_GROUPS; g++) {
+    const t = treatmentOf(g);
+    if(t === null || t < 1 || t > NUM_TREATMENTS) continue;
+    let repFi = 0, startBw = 0, endBw = 0;
+    
+    for(let w=startW; w<=endW; w++){
+      const rec = weeklyRecords.find(r => r.group === g && r.week === w);
+      if(rec) {
+        repFi += Math.max(feedOfferedForGroupWeek(g, w) - rec.rfi, 0);
+        endBw = rec.bw; 
+      }
+      if(w === startW && startW > 1) {
+        const prevRec = weeklyRecords.find(r => r.group === g && r.week === (startW - 1));
+        if(prevRec) startBw = prevRec.bw;
+      }
+    }
+    
+    let val = null;
+    if(param === 'bw' && endBw > 0) val = endBw;
+    if(param === 'fi' && repFi > 0) val = repFi;
+    if(param === 'fcr' && endBw > startBw) val = repFi / (endBw - startBw);
+
+    if(val !== null) groupsData[t-1].push(val);
+  }
+
+  const validGroups = groupsData.filter(g => g.length > 0);
+  if(validGroups.length < 2) return alert("Not enough data points to run ANOVA across treatments for this period.");
+
+  let totalN = 0, grandSum = 0;
+  validGroups.forEach(g => { totalN += g.length; grandSum += jStat.sum(g); });
+  const grandMean = grandSum / totalN;
+
+  let ssBetween = 0, ssWithin = 0;
+  validGroups.forEach(g => {
+      const groupMean = jStat.mean(g);
+      ssBetween += g.length * Math.pow(groupMean - grandMean, 2);
+      g.forEach(val => { ssWithin += Math.pow(val - groupMean, 2); });
+  });
+
+  const dfBetween = validGroups.length - 1;
+  const dfWithin = totalN - validGroups.length;
+  
+  if(dfWithin <= 0) return alert("Need more replicates to calculate variance.");
+
+  const msBetween = ssBetween / dfBetween;
+  const msWithin = ssWithin / dfWithin;
+  const fStat = msBetween / msWithin;
+  
+  const pValue = 1 - jStat.centralF.cdf(fStat, dfBetween, dfWithin);
+
+  document.getElementById('anovaResult').style.display = 'block';
+  document.getElementById('anovaTableBody').innerHTML = `
+    <tr><td>Between Treatments</td><td>${ssBetween.toFixed(2)}</td><td>${dfBetween}</td><td>${msBetween.toFixed(2)}</td><td><b>${fStat.toFixed(3)}</b></td><td><b>${pValue < 0.001 ? '<0.001' : pValue.toFixed(4)}</b></td></tr>
+    <tr><td>Within (Error)</td><td>${ssWithin.toFixed(2)}</td><td>${dfWithin}</td><td>${msWithin.toFixed(2)}</td><td></td><td></td></tr>
+    <tr><td>Total</td><td>${(ssBetween+ssWithin).toFixed(2)}</td><td>${dfBetween+dfWithin}</td><td></td><td></td><td></td></tr>
+  `;
+
+  const interp = document.getElementById('anovaInterpretation');
+  if(pValue < 0.05) {
+    interp.innerHTML = `<span style="color:#0F6E56">Result: Significant difference found</span> between treatments for ${param.toUpperCase()} during this phase (p < 0.05).`;
+  } else {
+    interp.innerHTML = `<span style="color:#854F0B">Result: No significant difference</span> between treatments for ${param.toUpperCase()} during this phase (p >= 0.05).`;
+  }
+});
+
+// -- EXCEL EXPORT --
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const weeklyData = weeklyRecords.slice().sort((a,b)=> a.group - b.group || a.week - b.week).map(r=>{
+    const offered = feedOfferedForGroupWeek(r.group, r.week);
+    const t = treatmentOf(r.group);
+    const rep = replicateOf(r.group);
+    const row = { Group: r.group };
+    if(mappingValid()){ row.Treatment = 'T'+t; row.Replicate = 'R'+rep; }
+    row.Week = r.week;
+    row['Body Weight (g)'] = r.bw;
+    row['Feed Offered (g)'] = offered;
+    row['Residual Feed (g)'] = r.rfi;
+    row['Feed Intake (g)'] = Math.max(offered - r.rfi, 0);
+    return row;
+  });
+  
+  const dailyData = dailyRecords.slice().sort((a,b)=> a.group - b.group || a.day - b.day).map(r=>{
+    const t = treatmentOf(r.group);
+    const rep = replicateOf(r.group);
+    const row = { Group: r.group };
+    if(mappingValid()){ row.Treatment = 'T'+t; row.Replicate = 'R'+rep; }
+    row.Day = r.day;
+    row['Feed Offered (g)'] = r.dfo;
+    return row;
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(weeklyData), 'Weekly Data');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dailyData), 'Daily Feed Offered');
+
+  if(mappingValid()){
+    const summaryRows = [];
+    const prevAvgBw = {};
+    for(let w=1; w<=NUM_WEEKS; w++){
+      for(let t=1; t<=NUM_TREATMENTS; t++){
+        const recordsThisWeek = weeklyRecords.filter(r => treatmentOf(r.group) === t && r.week === w);
+        if(!recordsThisWeek.length) continue;
+        let sumBw = 0, sumFi = 0;
+        recordsThisWeek.forEach(r => {
+          sumBw += r.bw;
+          sumFi += Math.max(feedOfferedForGroupWeek(r.group, r.week) - r.rfi, 0);
+        });
+        const avgBw = sumBw / recordsThisWeek.length;
+        const avgFi = sumFi / recordsThisWeek.length;
+        const gain = avgBw - (prevAvgBw[t] || 0);
+        const fcr = gain > 0 ? (avgFi / gain) : null;
+        
+        summaryRows.push({
+          Treatment: 'T' + t,
+          Week: w,
+          'Avg Body Weight (g)': avgBw,
+          'Avg Feed Intake (g)': avgFi,
+          'Avg Weight Gain (g)': gain,
+          'Feed Conversion Ratio (FCR)': fcr ? fcr : 'NA'
+        });
+        prevAvgBw[t] = avgBw;
+      }
+    }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryRows), 'Treatment Summary');
+  }
+
+  XLSX.writeFile(wb, `${currentExpName}_Avianlytics_Export.xlsx`);
+});
+
+// --- LOAD INITIAL STATE ---
+loadState();
+
+</script>
+</body>
+</html>
