@@ -112,6 +112,14 @@
   }
   input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15, 110, 86, 0.1); }
   
+  input[type="checkbox"] {
+    width: auto !important;
+    box-shadow: none !important;
+  }
+  input[type="checkbox"]:focus {
+    box-shadow: none !important;
+  }
+
   button.primary-btn {
     background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem;
     font-size: 1rem; font-weight: 500; border-radius: 4px; cursor: pointer; transition: 0.2s;
@@ -307,7 +315,11 @@
         <h3 style="margin-top:0">Add Daily Feed Offered</h3>
         <div class="grid-2" style="margin-bottom: 1rem;">
           <div><label>Group</label><select id="groupD"></select></div>
-          <div><label>Day</label><input id="dayD" type="number" min="1" /></div>
+          <div><label>Day</label><select id="dayD"></select></div>
+        </div>
+        <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+          <input id="applyAllGroups" type="checkbox" />
+          <label for="applyAllGroups" style="margin-bottom: 0; cursor: pointer; font-weight: normal; font-size: 0.9rem;">Apply same feed amount to all groups</label>
         </div>
         <div style="margin-bottom: 1rem;">
           <label>Feed Offered (g)</label>
@@ -494,6 +506,7 @@ function updateExpUI() {
   document.getElementById('numReplicates').value = REPS_PER_TREATMENT;
 
   populateWeekSelect();
+  populateDayDSelect();
   updateMappingNote();
 
   if(document.getElementById('dashboard').classList.contains('active')) refresh();
@@ -529,6 +542,7 @@ document.getElementById('saveConfigBtn').addEventListener('click', () => {
   REPS_PER_TREATMENT = Number(document.getElementById('numReplicates').value) || 1;
   
   populateWeekSelect();
+  populateDayDSelect();
   updateMappingNote();
   saveState();
   
@@ -572,6 +586,7 @@ function replicateOf(group){ return mappingValid() ? ((group - 1) % REPS_PER_TRE
 const groupSel = document.getElementById('group');
 const groupSelD = document.getElementById('groupD');
 const weekSel = document.getElementById('week');
+const daySelD = document.getElementById('dayD');
 
 function populateGroupSelect(sel) {
   const prev = sel.value;
@@ -594,6 +609,19 @@ function populateWeekSelect() {
   if(prev && Number(prev) <= NUM_WEEKS) weekSel.value = prev;
 }
 
+function populateDayDSelect() {
+  const prev = daySelD.value;
+  daySelD.innerHTML = '';
+  const maxDays = NUM_WEEKS * 7;
+  for(let d=1; d<=maxDays; d++){
+    let opt = document.createElement('option');
+    opt.value = d;
+    opt.textContent = 'Day ' + d;
+    daySelD.appendChild(opt);
+  }
+  if(prev && Number(prev) <= maxDays) daySelD.value = prev;
+}
+
 function updateMappingNote(){
   const note = document.getElementById('mappingNote');
   if(mappingValid()){
@@ -606,6 +634,16 @@ function updateMappingNote(){
   populateGroupSelect(groupSel);
   populateGroupSelect(groupSelD);
 }
+
+// Ensure the disabled status matches checkbox state on page load
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('groupD').disabled = document.getElementById('applyAllGroups').checked;
+});
+
+// Disable Group Selection dropdown when bulk setting feed to all groups
+document.getElementById('applyAllGroups').addEventListener('change', (e) => {
+  document.getElementById('groupD').disabled = e.target.checked;
+});
 
 // --- DATA LOGIC ---
 function feedOfferedForGroupWeek(group, week){
@@ -626,13 +664,46 @@ groupSel.addEventListener('change', updateComputed);
 document.getElementById('rfi').addEventListener('input', updateComputed);
 
 document.getElementById('addDailyBtn').addEventListener('click', ()=>{
-  const group = Number(groupSelD.value), day = Number(document.getElementById('dayD').value), dfo = Number(document.getElementById('dfo').value);
-  if(!day || isNaN(day) || !dfo || isNaN(dfo)) return alert("Enter valid day and feed");
-  dailyRecords = dailyRecords.filter(r => !(r.group === group && r.day === day));
-  dailyRecords.push({ group, day, dfo });
-  document.getElementById('dfo').value='';
+  const day = Number(document.getElementById('dayD').value);
+  const dfo = Number(document.getElementById('dfo').value);
+  const applyAll = document.getElementById('applyAllGroups').checked;
+
+  if(!day || isNaN(day) || !dfo || isNaN(dfo) || dfo < 0) {
+    return alert("Please enter a valid day and feed amount.");
+  }
+
+  if (applyAll) {
+    // Check if daily feed is already entered for any group on this day
+    const existingGroupRecords = dailyRecords.filter(r => r.day === day);
+    if (existingGroupRecords.length > 0) {
+      const confirmOver = confirm(`Feed for Day ${day} is already recorded for one or more groups. Do you want to change it?`);
+      if (!confirmOver) return;
+      // Overwrite by removing older records for this day
+      dailyRecords = dailyRecords.filter(r => r.day !== day);
+    }
+    
+    // Add records for all groups
+    for (let g = 1; g <= NUM_GROUPS; g++) {
+      dailyRecords.push({ group: g, day, dfo });
+    }
+    alert(`Day ${day} feed amount of ${dfo}g saved for all ${NUM_GROUPS} groups in ${currentExpName}.`);
+  } else {
+    // Individual group configuration
+    const group = Number(groupSelD.value);
+    const existingRecord = dailyRecords.find(r => r.group === group && r.day === day);
+    if (existingRecord) {
+      const confirmOver = confirm(`Feed for Day ${day} is already recorded for Group ${group}. Do you want to change it?`);
+      if (!confirmOver) return;
+      // Overwrite by removing original single record
+      dailyRecords = dailyRecords.filter(r => !(r.group === group && r.day === day));
+    }
+
+    dailyRecords.push({ group, day, dfo });
+    alert(`Day ${day} saved for Group ${group} in ${currentExpName}`);
+  }
+
+  document.getElementById('dfo').value = '';
   saveState(); 
-  alert(`Day ${day} saved for Group ${group} in ${currentExpName}`);
   updateComputed();
 });
 
