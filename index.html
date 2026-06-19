@@ -187,28 +187,28 @@
       <div class="guide-num">1</div>
       <div>
         <strong>Create & Set Up Your Experiment</strong><br>
-        Go to the <em>Trial Setup</em> tab. You can create a new workspace (e.g., "Summer Trial"), enter the specific groups, treatments, and replicates for that specific experiment, and click <strong>Save Configuration</strong>.
+        Go to the <em>Trial Setup</em> tab. Select if the trial is for <strong>Broilers</strong> or <strong>Layers</strong>, input the birds per group, set up the specific groups, treatments, and replicates, and click <strong>Save Configuration</strong>.
       </div>
     </div>
     <div class="guide-step">
       <div class="guide-num">2</div>
       <div>
-        <strong>Daily Feed Entry (Optional but recommended)</strong><br>
-        In the <em>Data Entry</em> tab, input the exact feed offered to each group every day. The app will automatically sum this up at the end of the week.
+        <strong>Daily Data Entry (Feed Offered, Layer Extras)</strong><br>
+        In the <em>Data Entry</em> tab, input daily feed offered. If you run a Layer experiment, you will additionally see options to enter daily egg counts and mortalities to dynamically adjust HDEP.
       </div>
     </div>
     <div class="guide-step">
       <div class="guide-num">3</div>
       <div>
         <strong>Weekly Records</strong><br>
-        At the end of each week, enter the average Body Weight (BW) and any Residual Feed (leftovers). The app calculates <strong>Feed Intake</strong> and <strong>FCR</strong> automatically.
+        At the end of each week, enter the average Body Weight (BW) and any Residual Feed (leftovers). The app calculates <strong>Feed Intake</strong>, <strong>FCR</strong>, and Layer production outputs automatically.
       </div>
     </div>
     <div class="guide-step">
       <div class="guide-num">4</div>
       <div>
         <strong>Analyze Results</strong><br>
-        Visit the <em>ANOVA Analysis</em> tab to run One-Way ANOVA tests comparing your treatments across different phases (Pre-starter, Starter, Finisher, Overall).
+        Visit the <em>ANOVA Analysis</em> tab to run One-Way ANOVA tests comparing your treatments across parameters including Egg Production indices (HDEP/HHEP).
       </div>
     </div>
 
@@ -278,6 +278,20 @@
         Enter the parameters below and click <strong>Save Experiment Configuration</strong> to lock them in and update the Data Entry dropdowns.
       </p>
       
+      <div class="grid-2" style="margin-bottom: 1rem;">
+        <div>
+          <label>Trial Type</label>
+          <select id="trialType">
+            <option value="broiler">Broiler (Meat Production)</option>
+            <option value="layer">Layer (Egg Production)</option>
+          </select>
+        </div>
+        <div>
+          <label>Birds per Group (Pen Count)</label>
+          <input id="initialBirds" type="number" min="1" value="20" />
+        </div>
+      </div>
+
       <div class="grid-2">
         <div>
           <label>Total Number of Groups (Pens)</label>
@@ -297,7 +311,9 @@
         </div>
       </div>
 
-      <button id="saveConfigBtn" class="primary-btn" style="margin-top: 1.5rem;"><i class="ti ti-device-floppy"></i> Save Experiment Configuration</button>
+      <p id="birdsCalculationNote" style="font-size: 0.9rem; margin-top: 1.25rem; font-weight: 500;"></p>
+
+      <button id="saveConfigBtn" class="primary-btn" style="margin-top: 1rem;"><i class="ti ti-device-floppy"></i> Save Experiment Configuration</button>
       
       <p id="mappingNote" style="font-size: 0.85rem; color: var(--primary); margin-top: 1rem; font-weight: 500;"></p>
     </div>
@@ -312,7 +328,7 @@
   <div id="entry" class="tab-content">
     <div class="grid-2">
       <div class="card" style="background: #fafafa;">
-        <h3 style="margin-top:0">Add Daily Feed Offered</h3>
+        <h3 id="dailyRecordTitle" style="margin-top:0">Add Daily Feed Offered</h3>
         <div class="grid-2" style="margin-bottom: 1rem;">
           <div><label>Group</label><select id="groupD"></select></div>
           <div><label>Day</label><select id="dayD"></select></div>
@@ -325,6 +341,19 @@
           <label>Feed Offered (g)</label>
           <input id="dfo" type="number" />
         </div>
+        
+        <!-- dynamic layer inputs -->
+        <div id="layerDailyFields" style="display:none; margin-bottom: 1rem;" class="grid-2">
+          <div>
+            <label>Eggs Collected (pcs)</label>
+            <input id="dailyEggs" type="number" min="0" value="0" />
+          </div>
+          <div>
+            <label>Mortality (birds)</label>
+            <input id="dailyMortality" type="number" min="0" value="0" />
+          </div>
+        </div>
+
         <button id="addDailyBtn" class="primary-btn"><i class="ti ti-plus"></i> Save Daily Record</button>
       </div>
 
@@ -434,12 +463,14 @@ let experiments = {};
 
 // Working variables (Proxy for the active experiment)
 let NUM_GROUPS = 100, NUM_WEEKS = 6, NUM_TREATMENTS = 4, REPS_PER_TREATMENT = 25;
+let TRIAL_TYPE = "broiler";
+let INITIAL_BIRDS = 20;
 let weeklyRecords = [];
 let dailyRecords = [];
 
 function saveActiveToMemory() {
   experiments[currentExpName] = {
-    NUM_GROUPS, NUM_WEEKS, NUM_TREATMENTS, REPS_PER_TREATMENT,
+    NUM_GROUPS, NUM_WEEKS, NUM_TREATMENTS, REPS_PER_TREATMENT, TRIAL_TYPE, INITIAL_BIRDS,
     weeklyRecords: [...weeklyRecords],
     dailyRecords: [...dailyRecords]
   };
@@ -451,6 +482,7 @@ function loadActiveFromMemory(name) {
     // Initialize blank default
     experiments[name] = {
       NUM_GROUPS: 100, NUM_WEEKS: 6, NUM_TREATMENTS: 4, REPS_PER_TREATMENT: 25,
+      TRIAL_TYPE: "broiler", INITIAL_BIRDS: 20,
       weeklyRecords: [], dailyRecords: []
     };
   }
@@ -459,6 +491,8 @@ function loadActiveFromMemory(name) {
   NUM_WEEKS = data.NUM_WEEKS;
   NUM_TREATMENTS = data.NUM_TREATMENTS;
   REPS_PER_TREATMENT = data.REPS_PER_TREATMENT;
+  TRIAL_TYPE = data.TRIAL_TYPE || "broiler";
+  INITIAL_BIRDS = data.INITIAL_BIRDS || 20;
   weeklyRecords = data.weeklyRecords || [];
   dailyRecords = data.dailyRecords || [];
 }
@@ -483,6 +517,50 @@ function loadState() {
   updateExpUI();
 }
 
+// Handle layout toggle based on Trial Type (Broiler vs Layer)
+function toggleTrialTypeUI() {
+  const isLayer = (TRIAL_TYPE === 'layer');
+  document.getElementById('layerDailyFields').style.display = isLayer ? 'grid' : 'none';
+  document.getElementById('dailyRecordTitle').textContent = isLayer ? "Add Daily Layer Record" : "Add Daily Feed Offered";
+  
+  // Rebuild ANOVA Parameter Options dynamically
+  const anovaParam = document.getElementById('anovaParam');
+  anovaParam.innerHTML = `
+    <option value="bw">Body Weight (BW)</option>
+    <option value="fi">Feed Intake (FI)</option>
+    <option value="fcr">Feed Conversion Ratio (FCR)</option>
+  `;
+  if (isLayer) {
+    anovaParam.innerHTML += `
+      <option value="hdep">Hen-Day Egg Production (HDEP %)</option>
+      <option value="hhep">Hen-Housed Egg Production (HHEP %)</option>
+    `;
+  }
+}
+
+// Calculate the bird count dynamically based on the form parameters
+function updateDynamicBirdsCalc() {
+  const groups = Number(document.getElementById('numGroups').value) || 0;
+  const treatments = Number(document.getElementById('numTreatments').value) || 0;
+  const replicates = Number(document.getElementById('numReplicates').value) || 0;
+  const birdsPerGroup = Number(document.getElementById('initialBirds').value) || 0;
+
+  const calcNote = document.getElementById('birdsCalculationNote');
+  if (!calcNote) return;
+
+  const isValidMapping = (treatments * replicates === groups) && groups > 0;
+
+  if (isValidMapping) {
+    const totalBirds = treatments * replicates * birdsPerGroup;
+    calcNote.innerHTML = `<i class="ti ti-info-circle"></i> <strong>Total Birds:</strong> ${treatments} Treatments × ${replicates} Replicates × ${birdsPerGroup} Birds/Group = <strong>${totalBirds} birds</strong> in the experiment.`;
+    calcNote.style.color = "var(--primary)";
+  } else {
+    const totalBirds = groups * birdsPerGroup;
+    calcNote.innerHTML = `<i class="ti ti-alert-circle"></i> <strong>Total Birds:</strong> ${groups} Groups × ${birdsPerGroup} Birds/Group = <strong>${totalBirds} birds</strong> (Warning: Treatments × Replicates does not match Total Groups).`;
+    calcNote.style.color = "#dc2626";
+  }
+}
+
 // UI Updaters for Experiment Switch
 function updateExpUI() {
   // Update Header
@@ -504,10 +582,14 @@ function updateExpUI() {
   document.getElementById('numWeeks').value = NUM_WEEKS;
   document.getElementById('numTreatments').value = NUM_TREATMENTS;
   document.getElementById('numReplicates').value = REPS_PER_TREATMENT;
+  document.getElementById('trialType').value = TRIAL_TYPE;
+  document.getElementById('initialBirds').value = INITIAL_BIRDS;
 
+  toggleTrialTypeUI();
   populateWeekSelect();
   populateDayDSelect();
   updateMappingNote();
+  updateDynamicBirdsCalc();
 
   if(document.getElementById('dashboard').classList.contains('active')) refresh();
 }
@@ -534,16 +616,25 @@ document.getElementById('createExpBtn').addEventListener('click', () => {
   alert(`Created and switched to: ${newName}`);
 });
 
+// Attach input listeners for dynamic bird calculations
+['numGroups', 'numTreatments', 'numReplicates', 'initialBirds'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateDynamicBirdsCalc);
+});
+
 // Explicit Configuration Save Button
 document.getElementById('saveConfigBtn').addEventListener('click', () => {
   NUM_GROUPS = Number(document.getElementById('numGroups').value) || 1;
   NUM_WEEKS = Number(document.getElementById('numWeeks').value) || 1;
   NUM_TREATMENTS = Number(document.getElementById('numTreatments').value) || 1;
   REPS_PER_TREATMENT = Number(document.getElementById('numReplicates').value) || 1;
+  TRIAL_TYPE = document.getElementById('trialType').value;
+  INITIAL_BIRDS = Number(document.getElementById('initialBirds').value) || 20;
   
   populateWeekSelect();
   populateDayDSelect();
   updateMappingNote();
+  toggleTrialTypeUI();
+  updateDynamicBirdsCalc();
   saveState();
   
   alert(`Configuration saved successfully for ${currentExpName}. Data entry dropdowns have been updated.`);
@@ -651,6 +742,38 @@ function feedOfferedForGroupWeek(group, week){
   return dailyRecords.filter(r => r.group === group && days.includes(r.day)).reduce((s,r)=> s + r.dfo, 0);
 }
 
+// Calculate total layer statistics (Eggs, Hen Days, Hen Housed Days) for a group over an interval of days
+function getLayerMetricsForGroup(group, startDay, endDay) {
+  let totalEggs = 0;
+  let totalHenDays = 0;
+  
+  // Calculate starting cumulative mortality before the interval begins
+  let priorMortality = dailyRecords
+    .filter(r => r.group === group && r.day < startDay)
+    .reduce((sum, r) => sum + (r.mortality || 0), 0);
+
+  let activeBirdsCount = Math.max(INITIAL_BIRDS - priorMortality, 0);
+
+  for (let d = startDay; d <= endDay; d++) {
+    const rec = dailyRecords.find(r => r.group === group && r.day === d);
+    const dayEggs = rec ? (rec.eggs || 0) : 0;
+    const dayMortality = rec ? (rec.mortality || 0) : 0;
+    
+    totalEggs += dayEggs;
+    // Current live birds contribute to today's active hen day count
+    totalHenDays += activeBirdsCount;
+    // Update count for the start of the next day
+    activeBirdsCount = Math.max(activeBirdsCount - dayMortality, 0);
+  }
+
+  const totalHenHousedDays = INITIAL_BIRDS * (endDay - startDay + 1);
+
+  const hdep = totalHenDays > 0 ? (totalEggs / totalHenDays) * 100 : 0;
+  const hhep = totalHenHousedDays > 0 ? (totalEggs / totalHenHousedDays) * 100 : 0;
+
+  return { totalEggs, totalHenDays, totalHenHousedDays, hdep, hhep };
+}
+
 function updateComputed(){
   const group = Number(groupSel.value), week = Number(weekSel.value);
   const offered = feedOfferedForGroupWeek(group, week);
@@ -668,41 +791,51 @@ document.getElementById('addDailyBtn').addEventListener('click', ()=>{
   const dfo = Number(document.getElementById('dfo').value);
   const applyAll = document.getElementById('applyAllGroups').checked;
 
-  if(!day || isNaN(day) || !dfo || isNaN(dfo) || dfo < 0) {
+  if(!day || isNaN(day) || isNaN(dfo) || dfo < 0) {
     return alert("Please enter a valid day and feed amount.");
   }
+
+  const isLayer = (TRIAL_TYPE === 'layer');
+  const eggs = isLayer ? Number(document.getElementById('dailyEggs').value || 0) : 0;
+  const mortality = isLayer ? Number(document.getElementById('dailyMortality').value || 0) : 0;
 
   if (applyAll) {
     // Check if daily feed is already entered for any group on this day
     const existingGroupRecords = dailyRecords.filter(r => r.day === day);
     if (existingGroupRecords.length > 0) {
-      const confirmOver = confirm(`Feed for Day ${day} is already recorded for one or more groups. Do you want to change it?`);
+      const confirmOver = confirm(`Record for Day ${day} already exists for one or more groups. Do you want to overwrite?`);
       if (!confirmOver) return;
-      // Overwrite by removing older records for this day
       dailyRecords = dailyRecords.filter(r => r.day !== day);
     }
     
+    const activeGroup = Number(groupSelD.value);
     // Add records for all groups
     for (let g = 1; g <= NUM_GROUPS; g++) {
-      dailyRecords.push({ group: g, day, dfo });
+      // Eggs and mortality are individual metrics; they are only assigned to the active selected group
+      const gEggs = (g === activeGroup) ? eggs : 0;
+      const gMort = (g === activeGroup) ? mortality : 0;
+      dailyRecords.push({ group: g, day, dfo, eggs: gEggs, mortality: gMort });
     }
-    alert(`Day ${day} feed amount of ${dfo}g saved for all ${NUM_GROUPS} groups in ${currentExpName}.`);
+    alert(`Day ${day} feed amount of ${dfo}g saved for all ${NUM_GROUPS} groups in ${currentExpName}. Eggs (${eggs}) and Mortality (${mortality}) saved for active Group ${activeGroup}.`);
   } else {
     // Individual group configuration
     const group = Number(groupSelD.value);
-    const existingRecord = dailyRecords.find(r => r.group === group && r.day === day);
-    if (existingRecord) {
-      const confirmOver = confirm(`Feed for Day ${day} is already recorded for Group ${group}. Do you want to change it?`);
+    const existingRecordIndex = dailyRecords.findIndex(r => r.group === group && r.day === day);
+    if (existingRecordIndex !== -1) {
+      const confirmOver = confirm(`Feed/Layer production details for Day ${day} are already recorded for Group ${group}. Do you want to change them?`);
       if (!confirmOver) return;
-      // Overwrite by removing original single record
-      dailyRecords = dailyRecords.filter(r => !(r.group === group && r.day === day));
+      dailyRecords.splice(existingRecordIndex, 1);
     }
 
-    dailyRecords.push({ group, day, dfo });
+    dailyRecords.push({ group, day, dfo, eggs, mortality });
     alert(`Day ${day} saved for Group ${group} in ${currentExpName}`);
   }
 
   document.getElementById('dfo').value = '';
+  if (isLayer) {
+    document.getElementById('dailyEggs').value = '0';
+    document.getElementById('dailyMortality').value = '0';
+  }
   saveState(); 
   updateComputed();
 });
@@ -725,53 +858,146 @@ let chart = new Chart(ctx, { type: 'line', data: { labels: [], datasets: [] }, o
 function refresh(){
   if(!mappingValid()) return;
   
-  // Update Chart
-  const byTreatWeek = {};
-  weeklyRecords.forEach(r => {
-    const t = treatmentOf(r.group);
-    if(t === null) return;
-    if(!byTreatWeek[t]) byTreatWeek[t] = {};
-    if(!byTreatWeek[t][r.week]) byTreatWeek[t][r.week] = [];
-    byTreatWeek[t][r.week].push(r.bw);
-  });
-  
+  const isLayer = (TRIAL_TYPE === 'layer');
   chart.data.labels = Array.from({length:NUM_WEEKS},(_,i)=>'Week '+(i+1));
   const colors = ['#0F6E56','#993C1D','#185FA5','#854F0B','#993556','#3C3489'];
-  
-  chart.data.datasets = Object.keys(byTreatWeek).map((t,i) => ({
-    label: 'Treatment '+t,
-    data: Array.from({length:NUM_WEEKS},(_,wi)=>{
-      const arr = byTreatWeek[t][wi+1];
-      return arr ? +(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : null;
-    }),
-    borderColor: colors[i % colors.length],
-    tension: 0.2
-  }));
+
+  if (isLayer) {
+    // Compute Weekly Hen-Day Egg Production (%) curve per Treatment
+    const byTreatWeekHdep = {};
+    for (let w = 1; w <= NUM_WEEKS; w++) {
+      const days = daysOfWeek(w);
+      const startDay = days[0];
+      const endDay = days[days.length - 1];
+
+      for (let g = 1; g <= NUM_GROUPS; g++) {
+        const t = treatmentOf(g);
+        if (t === null) continue;
+        if (!byTreatWeekHdep[t]) byTreatWeekHdep[t] = {};
+        if (!byTreatWeekHdep[t][w]) byTreatWeekHdep[t][w] = { eggs: 0, henDays: 0 };
+        
+        const metrics = getLayerMetricsForGroup(g, startDay, endDay);
+        byTreatWeekHdep[t][w].eggs += metrics.totalEggs;
+        byTreatWeekHdep[t][w].henDays += metrics.totalHenDays;
+      }
+    }
+
+    chart.data.datasets = Object.keys(byTreatWeekHdep).map((t, i) => ({
+      label: 'Treatment ' + t + ' (HDEP %)',
+      data: Array.from({length: NUM_WEEKS}, (_, wi) => {
+        const val = byTreatWeekHdep[t][wi + 1];
+        return val && val.henDays > 0 ? +(val.eggs / val.henDays * 100).toFixed(1) : 0;
+      }),
+      borderColor: colors[i % colors.length],
+      tension: 0.2
+    }));
+
+    if (!chart.options.plugins) chart.options.plugins = {};
+    chart.options.plugins.title = {
+      display: true,
+      text: 'Weekly Hen-Day Egg Production (HDEP %)'
+    };
+  } else {
+    // Collect traditional weekly Body Weight (BW) per Treatment
+    const byTreatWeek = {};
+    weeklyRecords.forEach(r => {
+      const t = treatmentOf(r.group);
+      if(t === null) return;
+      if(!byTreatWeek[t]) byTreatWeek[t] = {};
+      if(!byTreatWeek[t][r.week]) byTreatWeek[t][r.week] = [];
+      byTreatWeek[t][r.week].push(r.bw);
+    });
+    
+    chart.data.datasets = Object.keys(byTreatWeek).map((t,i) => ({
+      label: 'Treatment '+t,
+      data: Array.from({length:NUM_WEEKS},(_,wi)=>{
+        const arr = byTreatWeek[t][wi+1];
+        return arr ? +(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : null;
+      }),
+      borderColor: colors[i % colors.length],
+      tension: 0.2
+    }));
+
+    if (!chart.options.plugins) chart.options.plugins = {};
+    chart.options.plugins.title = {
+      display: true,
+      text: 'Weekly Body Weight (g)'
+    };
+  }
   chart.update();
 
-  // Update Summary Table
+  // Update Summary Table Headings based on Trial Type
+  const summaryHead = document.getElementById('summaryTable').querySelector('thead tr');
+  if (isLayer) {
+    summaryHead.innerHTML = `
+      <th>Treatment</th><th>Week</th><th>Avg BW (g)</th><th>Avg FI (g)</th><th>Total Eggs</th><th>HDEP (%)</th><th>HHEP (%)</th>
+    `;
+  } else {
+    summaryHead.innerHTML = `
+      <th>Treatment</th><th>Week</th><th>Avg BW (g)</th><th>Avg FI (g)</th><th>Avg Gain (g)</th><th>FCR</th>
+    `;
+  }
+
+  // Update Summary Table Body
   const tbS = document.getElementById('tbodySummary');
   tbS.innerHTML = '';
   const prevAvgBw = {};
   
   for(let w=1; w<=NUM_WEEKS; w++){
+    const days = daysOfWeek(w);
+    const startDay = days[0];
+    const endDay = days[days.length - 1];
+
     for(let t=1; t<=NUM_TREATMENTS; t++){
       const recordsThisWeek = weeklyRecords.filter(r => treatmentOf(r.group) === t && r.week === w);
-      if(!recordsThisWeek.length) continue;
+      if(!recordsThisWeek.length && !isLayer) continue;
       
-      let sumBw = 0, sumFi = 0;
+      let sumBw = 0, sumFi = 0, countBw = 0;
       recordsThisWeek.forEach(r => {
         sumBw += r.bw;
+        countBw++;
         sumFi += Math.max(feedOfferedForGroupWeek(r.group, r.week) - r.rfi, 0);
       });
       
-      const avgBw = sumBw / recordsThisWeek.length;
-      const avgFi = sumFi / recordsThisWeek.length;
-      const gain = avgBw - (prevAvgBw[t] || 0); 
-      const fcr = gain > 0 ? (avgFi / gain) : null;
+      const avgBw = countBw > 0 ? sumBw / countBw : 0;
+      const avgFi = countBw > 0 ? sumFi / countBw : 0;
       
-      tbS.innerHTML += `<tr><td>Treatment ${t}</td><td>Week ${w}</td><td>${avgBw.toFixed(1)}</td><td>${avgFi.toFixed(1)}</td><td>${gain.toFixed(1)}</td><td>${fcr ? fcr.toFixed(2) : 'NA'}</td></tr>`;
-      prevAvgBw[t] = avgBw;
+      if (isLayer) {
+        let tEggs = 0;
+        let tHenDays = 0;
+        let tHenHousedDays = 0;
+        
+        for (let g = 1; g <= NUM_GROUPS; g++) {
+          if (treatmentOf(g) === t) {
+            const metrics = getLayerMetricsForGroup(g, startDay, endDay);
+            tEggs += metrics.totalEggs;
+            tHenDays += metrics.totalHenDays;
+            tHenHousedDays += metrics.totalHenHousedDays;
+          }
+        }
+        
+        const hdep = tHenDays > 0 ? (tEggs / tHenDays * 100) : 0;
+        const hhep = tHenHousedDays > 0 ? (tEggs / tHenHousedDays * 100) : 0;
+        
+        if (tHenDays > 0 || countBw > 0) {
+          tbS.innerHTML += `
+            <tr>
+              <td>Treatment ${t}</td>
+              <td>Week ${w}</td>
+              <td>${avgBw ? avgBw.toFixed(1) : 'NA'}</td>
+              <td>${avgFi ? avgFi.toFixed(1) : 'NA'}</td>
+              <td>${tEggs}</td>
+              <td>${hdep.toFixed(2)}%</td>
+              <td>${hhep.toFixed(2)}%</td>
+            </tr>`;
+        }
+      } else {
+        const gain = avgBw - (prevAvgBw[t] || 0); 
+        const fcr = gain > 0 ? (avgFi / gain) : null;
+        
+        tbS.innerHTML += `<tr><td>Treatment ${t}</td><td>Week ${w}</td><td>${avgBw.toFixed(1)}</td><td>${avgFi.toFixed(1)}</td><td>${gain.toFixed(1)}</td><td>${fcr ? fcr.toFixed(2) : 'NA'}</td></tr>`;
+        prevAvgBw[t] = avgBw;
+      }
     }
   }
 }
@@ -795,24 +1021,40 @@ document.getElementById('runAnovaBtn').addEventListener('click', () => {
   for(let g=1; g<=NUM_GROUPS; g++) {
     const t = treatmentOf(g);
     if(t === null || t < 1 || t > NUM_TREATMENTS) continue;
-    let repFi = 0, startBw = 0, endBw = 0;
-    
-    for(let w=startW; w<=endW; w++){
-      const rec = weeklyRecords.find(r => r.group === g && r.week === w);
-      if(rec) {
-        repFi += Math.max(feedOfferedForGroupWeek(g, w) - rec.rfi, 0);
-        endBw = rec.bw; 
-      }
-      if(w === startW && startW > 1) {
-        const prevRec = weeklyRecords.find(r => r.group === g && r.week === (startW - 1));
-        if(prevRec) startBw = prevRec.bw;
-      }
-    }
     
     let val = null;
-    if(param === 'bw' && endBw > 0) val = endBw;
-    if(param === 'fi' && repFi > 0) val = repFi;
-    if(param === 'fcr' && endBw > startBw) val = repFi / (endBw - startBw);
+
+    if (param === 'hdep' || param === 'hhep') {
+      const days = [];
+      for (let w = startW; w <= endW; w++) {
+        days.push(...daysOfWeek(w));
+      }
+      const startDay = days[0];
+      const endDay = days[days.length - 1];
+      
+      const metrics = getLayerMetricsForGroup(g, startDay, endDay);
+      if (param === 'hdep' && metrics.totalHenDays > 0) {
+        val = metrics.hdep;
+      } else if (param === 'hhep' && metrics.totalHenHousedDays > 0) {
+        val = metrics.hhep;
+      }
+    } else {
+      let repFi = 0, startBw = 0, endBw = 0;
+      for(let w=startW; w<=endW; w++){
+        const rec = weeklyRecords.find(r => r.group === g && r.week === w);
+        if(rec) {
+          repFi += Math.max(feedOfferedForGroupWeek(g, w) - rec.rfi, 0);
+          endBw = rec.bw; 
+        }
+        if(w === startW && startW > 1) {
+          const prevRec = weeklyRecords.find(r => r.group === g && r.week === (startW - 1));
+          if(prevRec) startBw = prevRec.bw;
+        }
+      }
+      if(param === 'bw' && endBw > 0) val = endBw;
+      if(param === 'fi' && repFi > 0) val = repFi;
+      if(param === 'fcr' && endBw > startBw) val = repFi / (endBw - startBw);
+    }
 
     if(val !== null) groupsData[t-1].push(val);
   }
@@ -859,6 +1101,8 @@ document.getElementById('runAnovaBtn').addEventListener('click', () => {
 
 // -- EXCEL EXPORT --
 document.getElementById('exportBtn').addEventListener('click', () => {
+  const isLayer = (TRIAL_TYPE === 'layer');
+
   const weeklyData = weeklyRecords.slice().sort((a,b)=> a.group - b.group || a.week - b.week).map(r=>{
     const offered = feedOfferedForGroupWeek(r.group, r.week);
     const t = treatmentOf(r.group);
@@ -870,6 +1114,16 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     row['Feed Offered (g)'] = offered;
     row['Residual Feed (g)'] = r.rfi;
     row['Feed Intake (g)'] = Math.max(offered - r.rfi, 0);
+
+    if (isLayer) {
+      const days = daysOfWeek(r.week);
+      const startDay = days[0];
+      const endDay = days[days.length - 1];
+      const metrics = getLayerMetricsForGroup(r.group, startDay, endDay);
+      row['Total Eggs (pcs)'] = metrics.totalEggs;
+      row['Hen-Day Egg Production (%)'] = +metrics.hdep.toFixed(2);
+      row['Hen-Housed Egg Production (%)'] = +metrics.hhep.toFixed(2);
+    }
     return row;
   });
   
@@ -880,38 +1134,66 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     if(mappingValid()){ row.Treatment = 'T'+t; row.Replicate = 'R'+rep; }
     row.Day = r.day;
     row['Feed Offered (g)'] = r.dfo;
+    if (isLayer) {
+      row['Eggs Collected (pcs)'] = r.eggs || 0;
+      row['Mortality (birds)'] = r.mortality || 0;
+    }
     return row;
   });
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(weeklyData), 'Weekly Data');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dailyData), 'Daily Feed Offered');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dailyData), 'Daily Feed & Production');
 
   if(mappingValid()){
     const summaryRows = [];
     const prevAvgBw = {};
     for(let w=1; w<=NUM_WEEKS; w++){
+      const days = daysOfWeek(w);
+      const startDay = days[0];
+      const endDay = days[days.length - 1];
+
       for(let t=1; t<=NUM_TREATMENTS; t++){
         const recordsThisWeek = weeklyRecords.filter(r => treatmentOf(r.group) === t && r.week === w);
-        if(!recordsThisWeek.length) continue;
+        if(!recordsThisWeek.length && !isLayer) continue;
         let sumBw = 0, sumFi = 0;
         recordsThisWeek.forEach(r => {
           sumBw += r.bw;
           sumFi += Math.max(feedOfferedForGroupWeek(r.group, r.week) - r.rfi, 0);
         });
-        const avgBw = sumBw / recordsThisWeek.length;
-        const avgFi = sumFi / recordsThisWeek.length;
+        const avgBw = recordsThisWeek.length ? (sumBw / recordsThisWeek.length) : 0;
+        const avgFi = recordsThisWeek.length ? (sumFi / recordsThisWeek.length) : 0;
         const gain = avgBw - (prevAvgBw[t] || 0);
         const fcr = gain > 0 ? (avgFi / gain) : null;
         
-        summaryRows.push({
+        const row = {
           Treatment: 'T' + t,
           Week: w,
           'Avg Body Weight (g)': avgBw,
           'Avg Feed Intake (g)': avgFi,
-          'Avg Weight Gain (g)': gain,
-          'Feed Conversion Ratio (FCR)': fcr ? fcr : 'NA'
-        });
+        };
+
+        if (isLayer) {
+          let tEggs = 0;
+          let tHenDays = 0;
+          let tHenHousedDays = 0;
+          for (let g = 1; g <= NUM_GROUPS; g++) {
+            if (treatmentOf(g) === t) {
+              const metrics = getLayerMetricsForGroup(g, startDay, endDay);
+              tEggs += metrics.totalEggs;
+              tHenDays += metrics.totalHenDays;
+              tHenHousedDays += metrics.totalHenHousedDays;
+            }
+          }
+          row['Total Eggs'] = tEggs;
+          row['Hen-Day Egg Production (HDEP %)'] = tHenDays > 0 ? +(tEggs / tHenDays * 100).toFixed(2) : 0;
+          row['Hen-Housed Egg Production (HHEP %)'] = tHenHousedDays > 0 ? +(tEggs / tHenHousedDays * 100).toFixed(2) : 0;
+        } else {
+          row['Avg Weight Gain (g)'] = gain;
+          row['Feed Conversion Ratio (FCR)'] = fcr ? fcr : 'NA';
+        }
+        
+        summaryRows.push(row);
         prevAvgBw[t] = avgBw;
       }
     }
