@@ -208,7 +208,7 @@
       <div class="guide-num">4</div>
       <div>
         <strong>Analyze Results</strong><br>
-        Visit the <em>ANOVA Analysis</em> tab to run One-Way ANOVA tests comparing your treatments across parameters including Egg Production indices (HDEP/HHEP).
+        Visit the <em>ANOVA Analysis</em> tab to run One-Way ANOVA tests comparing your treatments across parameters including Egg Production indices (HDEP/HHEP) and layers timeline phases (up to 80 weeks).
       </div>
     </div>
 
@@ -265,7 +265,7 @@
         <div style="display: flex; gap: 0.5rem;">
           <div style="flex-grow: 1;">
             <label>Create New Experiment</label>
-            <input id="newExpNameInput" type="text" placeholder="e.g. Summer Trial 2026" />
+            <input id="newExpNameInput" type="text" placeholder="e.g. Layer Production Trial" />
           </div>
           <button id="createExpBtn" class="secondary-btn" style="width: auto; padding: 0.75rem;"><i class="ti ti-plus"></i></button>
         </div>
@@ -416,16 +416,7 @@
         <div>
           <label>Time Period / Phase</label>
           <select id="anovaPeriod">
-            <option value="w1">Week 1</option>
-            <option value="w2">Week 2</option>
-            <option value="w3">Week 3</option>
-            <option value="w4">Week 4</option>
-            <option value="w5">Week 5</option>
-            <option value="w6">Week 6</option>
-            <option value="pre">Pre-starter (Days 1-14 / W1-W2)</option>
-            <option value="star">Starter (Days 15-28 / W3-W4)</option>
-            <option value="fin">Finisher (Days 29-42 / W5-W6)</option>
-            <option value="overall">Overall (Days 1-42 / W1-W6)</option>
+            <!-- Dynamically populated based on Trial Type -->
           </select>
         </div>
         <div style="display:flex; align-items:flex-end;">
@@ -517,6 +508,64 @@ function loadState() {
   updateExpUI();
 }
 
+// Dynamically populate ANOVA periods selector based on Broiler / Layer context
+function rebuildAnovaPeriods() {
+  const isLayer = (TRIAL_TYPE === 'layer');
+  const periodSel = document.getElementById('anovaPeriod');
+  const prevVal = periodSel.value;
+  periodSel.innerHTML = '';
+
+  // Standard Week-by-Week Dropdowns
+  for (let w = 1; w <= NUM_WEEKS; w++) {
+    let opt = document.createElement('option');
+    opt.value = 'w' + w;
+    opt.textContent = 'Week ' + w;
+    periodSel.appendChild(opt);
+  }
+
+  if (isLayer) {
+    // Custom Layer Phases (up to 80 weeks)
+    const phases = [
+      { val: 'overall', text: 'Overall (Full Duration W1-' + NUM_WEEKS + ')' },
+      { val: 'l_21_40', text: '21 to 40 Weeks (Early Phase)' },
+      { val: 'l_41_80', text: '41 to 80 Weeks (Late Phase)' },
+      { val: 'l_21_30', text: '21 to 30 Weeks' },
+      { val: 'l_31_40', text: '31 to 40 Weeks' },
+      { val: 'l_41_50', text: '41 to 50 Weeks' },
+      { val: 'l_51_60', text: '51 to 60 Weeks' },
+      { val: 'l_61_70', text: '61 to 70 Weeks' },
+      { val: 'l_71_80', text: '71 to 80 Weeks' }
+    ];
+    phases.forEach(p => {
+      let opt = document.createElement('option');
+      opt.value = p.val;
+      opt.textContent = p.text;
+      periodSel.appendChild(opt);
+    });
+  } else {
+    // Broiler specific phases
+    const phases = [
+      { val: 'pre', text: 'Pre-starter (Days 1-14 / W1-W2)' },
+      { val: 'star', text: 'Starter (Days 15-28 / W3-W4)' },
+      { val: 'fin', text: 'Finisher (Days 29-42 / W5-W6)' },
+      { val: 'overall', text: 'Overall (Full Duration W1-' + NUM_WEEKS + ')' }
+    ];
+    phases.forEach(p => {
+      let opt = document.createElement('option');
+      opt.value = p.val;
+      opt.textContent = p.text;
+      periodSel.appendChild(opt);
+    });
+  }
+
+  // Restore previous selection if still valid
+  if (Array.from(periodSel.options).some(o => o.value === prevVal)) {
+    periodSel.value = prevVal;
+  } else {
+    periodSel.value = 'overall';
+  }
+}
+
 // Handle layout toggle based on Trial Type (Broiler vs Layer)
 function toggleTrialTypeUI() {
   const isLayer = (TRIAL_TYPE === 'layer');
@@ -536,6 +585,8 @@ function toggleTrialTypeUI() {
       <option value="hhep">Hen-Housed Egg Production (HHEP %)</option>
     `;
   }
+
+  rebuildAnovaPeriods();
 }
 
 // Calculate the bird count dynamically based on the form parameters
@@ -1010,10 +1061,41 @@ document.getElementById('runAnovaBtn').addEventListener('click', () => {
   const period = document.getElementById('anovaPeriod').value;
   
   let startW = 1, endW = NUM_WEEKS;
-  if(period.startsWith('w')) { startW = endW = Number(period.replace('w','')); }
-  else if(period === 'pre') { startW = 1; endW = 2; }
-  else if(period === 'star') { startW = 3; endW = 4; }
-  else if(period === 'fin') { startW = 5; endW = 6; }
+  if (period.startsWith('w')) { 
+    startW = endW = Number(period.replace('w','')); 
+  } else if (period === 'pre') { 
+    startW = 1; endW = 2; 
+  } else if (period === 'star') { 
+    startW = 3; endW = 4; 
+  } else if (period === 'fin') { 
+    startW = 5; endW = 6; 
+  } else if (period === 'overall') {
+    startW = 1; endW = NUM_WEEKS;
+  } else if (period === 'l_21_40') {
+    startW = 21; endW = 40;
+  } else if (period === 'l_41_80') {
+    startW = 41; endW = 80;
+  } else if (period === 'l_21_30') {
+    startW = 21; endW = 30;
+  } else if (period === 'l_31_40') {
+    startW = 31; endW = 40;
+  } else if (period === 'l_41_50') {
+    startW = 41; endW = 50;
+  } else if (period === 'l_51_60') {
+    startW = 51; endW = 60;
+  } else if (period === 'l_61_70') {
+    startW = 61; endW = 70;
+  } else if (period === 'l_71_80') {
+    startW = 71; endW = 80;
+  }
+
+  if (startW > NUM_WEEKS) {
+    return alert(`The selected period (Week ${startW} to ${endW}) exceeds the configured trial duration of ${NUM_WEEKS} weeks. Please expand the Trial Duration in Setup.`);
+  }
+  if (endW > NUM_WEEKS) {
+    alert(`Warning: The selected period ends at Week ${endW}, which exceeds the configured trial duration of ${NUM_WEEKS} weeks. The analysis will run on available weeks (Week ${startW} to ${NUM_WEEKS}).`);
+    endW = NUM_WEEKS;
+  }
   
   const groupsData = []; 
   for(let t=1; t<=NUM_TREATMENTS; t++) groupsData.push([]);
